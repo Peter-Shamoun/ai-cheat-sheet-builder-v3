@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -8,6 +8,7 @@ function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchFiles();
@@ -57,6 +58,9 @@ function App() {
         }
       });
       setSelectedFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       fetchFiles();
       setError('');
     } catch (err) {
@@ -66,10 +70,20 @@ function App() {
 
   const handleDelete = async (fileId) => {
     try {
-      await axios.delete(`${API_URL}/files/${fileId}`);
+      await axios.delete(`http://localhost:5000/files/${fileId}`);
       fetchFiles();
     } catch (err) {
       setError('Error deleting file');
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await axios.delete(`${API_URL}/files`);
+      fetchFiles();
+      setError('');
+    } catch (err) {
+      setError('Error deleting all files');
     }
   };
 
@@ -83,6 +97,7 @@ function App() {
           multiple
           accept=".pdf"
           onChange={handleFileSelect}
+          ref={fileInputRef}
         />
         <button onClick={handleUpload} disabled={selectedFiles.length === 0}>
           Upload Files
@@ -101,7 +116,17 @@ function App() {
       </div>
 
       <div className="uploaded-files">
-        <h2>Uploaded Files</h2>
+        <div className="uploaded-files-header">
+          <h2>Uploaded Files</h2>
+          {uploadedFiles.length > 0 && (
+            <button 
+              onClick={handleDeleteAll}
+              className="delete-all-button"
+            >
+              Delete All
+            </button>
+          )}
+        </div>
         <ul>
           {uploadedFiles.map((file) => (
             <li key={file._id}>

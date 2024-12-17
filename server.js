@@ -101,6 +101,18 @@ app.delete('/files/:id', async (req, res) => {
     }
 });
 
+app.delete('/files', async (req, res) => {
+    try {
+        await PDF.deleteMany({});
+        res.status(200).json({ message: 'All files deleted successfully' });
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error deleting all files',
+            error: error.message
+        });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 }); 
