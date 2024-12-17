@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 
+axios.defaults.withCredentials = true;
+
 const API_URL = 'http://localhost:5000';
 
 function App() {
@@ -59,8 +61,7 @@ function App() {
       const response = await axios.post(`${API_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        },
-        timeout: 30000 // 30 second timeout
+        }
       });
       
       if (response.data && response.data.files) {
@@ -68,19 +69,11 @@ function App() {
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        await fetchFiles();
-      } else {
-        throw new Error('Invalid server response');
+        await fetchFiles();  // Refresh the file list
       }
     } catch (err) {
       console.error('Upload error:', err);
-      if (err.code === 'ECONNREFUSED') {
-        setError('Cannot connect to server. Please ensure the server is running.');
-      } else if (err.code === 'ECONNABORTED') {
-        setError('Upload timed out. Please try again.');
-      } else {
-        setError(err.response?.data?.message || 'Error uploading files. Please try again.');
-      }
+      setError(err.response?.data?.message || 'Error uploading files');
     } finally {
       setIsUploading(false);
     }

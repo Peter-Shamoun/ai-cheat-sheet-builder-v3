@@ -1,14 +1,38 @@
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
+const session = require('express-session');
+const { v4: uuidv4 } = require('uuid');
 const { uploadToS3, deleteFromS3, listFilesFromS3 } = require('./utils/s3Service');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Middleware to ensure user has ID
+app.use((req, res, next) => {
+  if (!req.session.userId) {
+    req.session.userId = uuidv4();
+  }
+  next();
+});
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
 // Multer configuration for PDF uploads
@@ -33,9 +57,10 @@ app.post('/upload', upload.array('pdfs', 10), async (req, res) => {
     try {
         const uploadedFiles = req.files;
         const savedFiles = [];
+        const userId = req.session.userId;
 
         for (const file of uploadedFiles) {
-            const result = await uploadToS3(file, file.originalname);
+            const result = await uploadToS3(file, file.originalname, userId);
             savedFiles.push({
                 id: result.key,
                 filename: file.originalname
@@ -56,12 +81,19 @@ app.post('/upload', upload.array('pdfs', 10), async (req, res) => {
 
 app.get('/files', async (req, res) => {
     try {
-        const files = await listFilesFromS3();
+        const userId = req.session.userId;
+        const files = await listFilesFromS3(userId);
+        
+        if (!files || files.length === 0) {
+            return res.status(200).json([]);
+        }
+
         const formattedFiles = files.map(file => ({
-            _id: file.Key,
-            filename: file.Key,
-            uploadDate: file.LastModified
+            _id: file._id,
+            filename: file.filename,
+            uploadDate: file.uploadDate
         }));
+        
         res.status(200).json(formattedFiles);
     } catch (error) {
         res.status(500).json({
@@ -73,7 +105,8 @@ app.get('/files', async (req, res) => {
 
 app.delete('/files/:id', async (req, res) => {
     try {
-        await deleteFromS3(req.params.id);
+        const userId = req.session.userId;
+        await deleteFromS3(req.params.id, userId);
         res.status(200).json({ message: 'File deleted successfully' });
     } catch (error) {
         res.status(500).json({

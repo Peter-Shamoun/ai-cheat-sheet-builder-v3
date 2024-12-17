@@ -9,19 +9,26 @@ const s3Client = new S3Client({
   },
 });
 
-const uploadToS3 = async (file, filename) => {
+const uploadToS3 = async (file, filename, userId) => {
+  // Create a user-specific key prefix
+  const userPrefix = `user_${userId}/`;
+  const key = userPrefix + filename;
+
   const params = {
     Bucket: process.env.bucket_name,
-    Key: filename,
+    Key: key,
     Body: file.buffer,
     ContentType: file.mimetype,
+    Metadata: {
+      userId: userId
+    }
   };
 
   try {
     await s3Client.send(new PutObjectCommand(params));
     return {
       success: true,
-      key: filename
+      key: key
     };
   } catch (error) {
     console.error('Error uploading to S3:', error);
@@ -29,10 +36,13 @@ const uploadToS3 = async (file, filename) => {
   }
 };
 
-const deleteFromS3 = async (filename) => {
+const deleteFromS3 = async (filename, userId) => {
+  // Ensure the filename includes the user prefix
+  const key = filename.startsWith(`user_${userId}/`) ? filename : `user_${userId}/${filename}`;
+  
   const params = {
     Bucket: process.env.bucket_name,
-    Key: filename,
+    Key: key,
   };
 
   try {
@@ -46,14 +56,19 @@ const deleteFromS3 = async (filename) => {
   }
 };
 
-const listFilesFromS3 = async () => {
+const listFilesFromS3 = async (userId) => {
   const params = {
     Bucket: process.env.bucket_name,
+    Prefix: `user_${userId}/`
   };
 
   try {
     const data = await s3Client.send(new ListObjectsV2Command(params));
-    return data.Contents || [];
+    return (data.Contents || []).map(file => ({
+      _id: file.Key,
+      filename: file.Key.replace(`user_${userId}/`, ''),
+      uploadDate: file.LastModified
+    }));
   } catch (error) {
     console.error('Error listing files from S3:', error);
     throw error;
