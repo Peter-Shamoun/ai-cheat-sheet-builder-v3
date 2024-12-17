@@ -11,6 +11,7 @@ function App() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -19,11 +20,23 @@ function App() {
 
   const fetchFiles = async () => {
     try {
+      setIsLoading(true);
       const response = await axios.get(`${API_URL}/files`);
-      setUploadedFiles(response.data);
+      if (response.status === 200) {
+        setUploadedFiles(response.data);
+        setError('');
+      } else {
+        ;
+      }
     } catch (err) {
-      setError('Error fetching files');
       console.error('Fetch error:', err);
+      if (err.response?.status === 401) {
+        setError('Please log in to view files');
+      } else {
+        setError('Unable to load files. Please try again later.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,7 +148,7 @@ function App() {
       <div className="uploaded-files">
         <div className="uploaded-files-header">
           <h2>Uploaded Files</h2>
-          {uploadedFiles.length > 0 && (
+          {!isLoading && uploadedFiles.length > 0 && (
             <button 
               onClick={handleDeleteAll}
               className="delete-all-button"
@@ -145,19 +158,23 @@ function App() {
             </button>
           )}
         </div>
-        <ul>
-          {uploadedFiles.map((file) => (
-            <li key={file._id}>
-              {file.filename}
-              <button 
-                onClick={() => handleDelete(file._id)}
-                disabled={isUploading}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+        {isLoading ? (
+          <div className="loading-message">Loading files...</div>
+        ) : (
+          <ul>
+            {uploadedFiles.map((file) => (
+              <li key={file._id}>
+                {file.filename}
+                <button 
+                  onClick={() => handleDelete(file._id)}
+                  disabled={isUploading}
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
