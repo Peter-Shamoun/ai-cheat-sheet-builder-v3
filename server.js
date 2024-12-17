@@ -3,7 +3,7 @@ const multer = require('multer');
 const cors = require('cors');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
-const { uploadToS3, deleteFromS3, listFilesFromS3 } = require('./utils/s3Service');
+const { uploadToS3, deleteFromS3, listFilesFromS3, deleteUserFolder } = require('./utils/s3Service');
 require('dotenv').config();
 
 const app = express();
@@ -30,9 +30,9 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
+    origin: 'http://localhost:5001',
+    credentials: true
+  }));
 app.use(express.json());
 
 // Multer configuration for PDF uploads
@@ -118,8 +118,8 @@ app.delete('/files/:id', async (req, res) => {
 
 app.delete('/files', async (req, res) => {
     try {
-        const files = await listFilesFromS3();
-        await Promise.all(files.map(file => deleteFromS3(file.Key)));
+        const userId = req.session.userId;
+        await deleteUserFolder(userId);
         res.status(200).json({ message: 'All files deleted successfully' });
     } catch (error) {
         res.status(500).json({

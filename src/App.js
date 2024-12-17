@@ -26,14 +26,19 @@ function App() {
         setUploadedFiles(response.data);
         setError('');
       } else {
-        ;
+        setError('Unexpected response from server');
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      if (err.response?.status === 401) {
-        setError('Please log in to view files');
+      if (err.response) {
+        // Server responded with a status other than 2xx
+        setError(err.response.data.message || 'Error fetching files');
+      } else if (err.request) {
+        // Request was made but no response received
+        setError('No response from server. Please check your network connection.');
       } else {
-        setError('Unable to load files. Please try again later.');
+        // Something else happened
+        setError('An unexpected error occurred. Please try again later.');
       }
     } finally {
       setIsLoading(false);
@@ -105,7 +110,7 @@ function App() {
   const handleDeleteAll = async () => {
     try {
       await axios.delete(`${API_URL}/files`);
-      fetchFiles();
+      setUploadedFiles([]);
       setError('');
     } catch (err) {
       setError('Error deleting all files');

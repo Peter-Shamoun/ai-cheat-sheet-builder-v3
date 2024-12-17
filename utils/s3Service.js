@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
 require('dotenv').config();
 
 const s3Client = new S3Client({
@@ -75,8 +75,42 @@ const listFilesFromS3 = async (userId) => {
   }
 };
 
+const deleteUserFolder = async (userId) => {
+  const params = {
+    Bucket: process.env.bucket_name,
+    Prefix: `user_${userId}/`
+  };
+
+  try {
+    // First, list all objects with the user's prefix
+    const listResponse = await s3Client.send(new ListObjectsV2Command(params));
+    
+    if (!listResponse.Contents || listResponse.Contents.length === 0) {
+      return { success: true };
+    }
+
+    // Prepare the objects for deletion
+    const deleteParams = {
+      Bucket: process.env.bucket_name,
+      Delete: {
+        Objects: listResponse.Contents.map(obj => ({ Key: obj.Key })),
+        Quiet: true
+      }
+    };
+
+    // Delete all objects in the folder
+    await s3Client.send(new DeleteObjectsCommand(deleteParams));
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting user folder from S3:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   uploadToS3,
   deleteFromS3,
-  listFilesFromS3
+  listFilesFromS3,
+  deleteUserFolder
 }; 
