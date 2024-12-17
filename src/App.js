@@ -8,6 +8,7 @@ function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [error, setError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ function App() {
       setUploadedFiles(response.data);
     } catch (err) {
       setError('Error fetching files');
+      console.error('Fetch error:', err);
     }
   };
 
@@ -46,34 +48,51 @@ function App() {
       return;
     }
 
+    setIsUploading(true);
+    setError('');
     const formData = new FormData();
     selectedFiles.forEach(file => {
       formData.append('pdfs', file);
     });
 
     try {
-      await axios.post(`${API_URL}/upload`, formData, {
+      const response = await axios.post(`${API_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 30000 // 30 second timeout
       });
-      setSelectedFiles([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      
+      if (response.data && response.data.files) {
+        setSelectedFiles([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        await fetchFiles();
+      } else {
+        throw new Error('Invalid server response');
       }
-      fetchFiles();
-      setError('');
     } catch (err) {
-      setError('Error uploading files');
+      console.error('Upload error:', err);
+      if (err.code === 'ECONNREFUSED') {
+        setError('Cannot connect to server. Please ensure the server is running.');
+      } else if (err.code === 'ECONNABORTED') {
+        setError('Upload timed out. Please try again.');
+      } else {
+        setError(err.response?.data?.message || 'Error uploading files. Please try again.');
+      }
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleDelete = async (fileId) => {
+  const handleDelete = async (filename) => {
     try {
-      await axios.delete(`http://localhost:5000/files/${fileId}`);
+      await axios.delete(`${API_URL}/files/${encodeURIComponent(filename)}`);
       fetchFiles();
     } catch (err) {
       setError('Error deleting file');
+      console.error('Delete error:', err);
     }
   };
 
@@ -84,12 +103,13 @@ function App() {
       setError('');
     } catch (err) {
       setError('Error deleting all files');
+      console.error('Delete all error:', err);
     }
   };
 
   return (
     <div className="App">
-      <h1>PDF File Upload</h1>
+      <h1>PDF File Upload to S3</h1>
       
       <div className="upload-section">
         <input
@@ -98,9 +118,13 @@ function App() {
           accept=".pdf"
           onChange={handleFileSelect}
           ref={fileInputRef}
+          disabled={isUploading}
         />
-        <button onClick={handleUpload} disabled={selectedFiles.length === 0}>
-          Upload Files
+        <button 
+          onClick={handleUpload} 
+          disabled={selectedFiles.length === 0 || isUploading}
+        >
+          {isUploading ? 'Uploading...' : 'Upload Files'}
         </button>
       </div>
 
@@ -122,6 +146,7 @@ function App() {
             <button 
               onClick={handleDeleteAll}
               className="delete-all-button"
+              disabled={isUploading}
             >
               Delete All
             </button>
@@ -131,7 +156,12 @@ function App() {
           {uploadedFiles.map((file) => (
             <li key={file._id}>
               {file.filename}
-              <button onClick={() => handleDelete(file._id)}>Delete</button>
+              <button 
+                onClick={() => handleDelete(file._id)}
+                disabled={isUploading}
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>

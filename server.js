@@ -1,7 +1,7 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const multer = require('multer');
 const cors = require('cors');
+const { uploadToS3, deleteFromS3, listFilesFromS3 } = require('./utils/s3Service');
 require('dotenv').config();
 
 const app = express();
@@ -10,25 +10,6 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => console.log('Connected to MongoDB'));
-
-// PDF Schema
-const pdfSchema = new mongoose.Schema({
-    filename: String,
-    data: Buffer,
-    uploadDate: { type: Date, default: Date.now }
-});
-
-const PDF = mongoose.model('PDF', pdfSchema);
 
 // Multer configuration for PDF uploads
 const storage = multer.memoryStorage();
@@ -54,14 +35,10 @@ app.post('/upload', upload.array('pdfs', 10), async (req, res) => {
         const savedFiles = [];
 
         for (const file of uploadedFiles) {
-            const newPDF = new PDF({
-                filename: file.originalname,
-                data: file.buffer
-            });
-            await newPDF.save();
+            const result = await uploadToS3(file, file.originalname);
             savedFiles.push({
-                id: newPDF._id,
-                filename: newPDF.filename
+                id: result.key,
+                filename: file.originalname
             });
         }
 
@@ -79,8 +56,13 @@ app.post('/upload', upload.array('pdfs', 10), async (req, res) => {
 
 app.get('/files', async (req, res) => {
     try {
-        const files = await PDF.find({}, 'filename uploadDate');
-        res.status(200).json(files);
+        const files = await listFilesFromS3();
+        const formattedFiles = files.map(file => ({
+            _id: file.Key,
+            filename: file.Key,
+            uploadDate: file.LastModified
+        }));
+        res.status(200).json(formattedFiles);
     } catch (error) {
         res.status(500).json({
             message: 'Error fetching files',
@@ -91,7 +73,7 @@ app.get('/files', async (req, res) => {
 
 app.delete('/files/:id', async (req, res) => {
     try {
-        await PDF.findByIdAndDelete(req.params.id);
+        await deleteFromS3(req.params.id);
         res.status(200).json({ message: 'File deleted successfully' });
     } catch (error) {
         res.status(500).json({
@@ -103,7 +85,8 @@ app.delete('/files/:id', async (req, res) => {
 
 app.delete('/files', async (req, res) => {
     try {
-        await PDF.deleteMany({});
+        const files = await listFilesFromS3();
+        await Promise.all(files.map(file => deleteFromS3(file.Key)));
         res.status(200).json({ message: 'All files deleted successfully' });
     } catch (error) {
         res.status(500).json({
