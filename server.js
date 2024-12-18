@@ -131,10 +131,6 @@ app.delete('/files', async (req, res) => {
     }
 });
 
-app.get('/current-user', (req, res) => {
-    res.json({ userId: req.session.userId });
-});
-
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 }); 
