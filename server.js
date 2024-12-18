@@ -24,6 +24,8 @@ app.use(session({
 app.use((req, res, next) => {
   if (!req.session.userId) {
     req.session.userId = uuidv4();
+    require('fs').appendFileSync('.env', `\nCURRENT_USER_ID=${req.session.userId}`);
+    process.env.CURRENT_USER_ID = req.session.userId;
   }
   next();
 });
