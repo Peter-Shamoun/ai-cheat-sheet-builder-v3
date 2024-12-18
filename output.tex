@@ -1,0 +1,228 @@
+ 
+\documentclass{article}
+\usepackage[landscape]{geometry}
+\usepackage{url}
+\usepackage{multicol}
+\usepackage{amsmath}
+\usepackage{esint}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathmorphing}
+\usepackage{amsmath,amssymb}
+
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{mathtools}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\makeatletter
+
+\newcommand*\bigcdot{\mathpalette\bigcdot@{.5}}
+\newcommand*\bigcdot@[2]{\mathbin{\vcenter{\hbox{\scalebox{#2}{$\m@th#1\bullet$}}}}}
+\makeatother
+
+\title{Title Cheat Sheet}
+\usepackage[brazilian]{babel}
+\usepackage[utf8]{inputenc}
+
+\advance\topmargin-.8in
+\advance\textheight3in
+\advance\textwidth3in
+\advance\oddsidemargin-1.5in
+\advance\evensidemargin-1.5in
+\parindent0pt
+\parskip2pt
+\newcommand{\hr}{\centerline{\rule{3.5in}{1pt}}}
+%\colorbox[HTML]{e4e4e4}{\makebox[\textwidth-2\fboxsep][l]{texto}
+\begin{document}
+
+\begin{center}{\huge{\textbf{Title Cheat Sheet}}}\\
+\end{center}
+\begin{multicols*}{3}
+
+\tikzstyle{mybox} = [draw=black, fill=white, very thick,
+    rectangle, rounded corners, inner sep=10pt, inner ysep=10pt]
+\tikzstyle{fancytitle} =[fill=black, text=white, font=\bfseries]
+
+%------------ Graph Algorithms ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+   
+        \textbf{Prim's Algorithm:} Prim's algorithm builds a minimum spanning tree by starting with a single vertex and adding the cheapest possible connection from the tree to another vertex.\\
+        \textbf{Kruskal's Algorithm:} Kruskal's algorithm constructs a minimum spanning tree by sorting all edges and adding them one by one, ensuring no cycles are formed.\\
+        \textbf{Minimum Spanning Tree (MST):} A minimum spanning tree of a graph is a subset of its edges that connects all vertices with the minimum possible total edge weight.\\
+        \textbf{Edge Ordering in Kruskal's Algorithm:} Edges are sorted by weight in non-decreasing order to ensure the addition of the smallest possible edge that doesn't form a cycle.\\
+        \textbf{Cycle Detection in Graphs:} Cycle detection is crucial in Kruskal's algorithm to prevent forming cycles when adding edges to the spanning tree.\\
+            
+\end{minipage}
+};
+%------------ Graph Algorithms  Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Graph Algorithms};
+\end{tikzpicture}
+
+%------------ Distance Graph  ---------------
+\begin{tikzpicture}
+\node [mybox] (box) {%
+    \begin{minipage}{0.3\textwidth}
+       \textbf{Complete Graph:} A complete graph $K_n$ is a simple undirected graph in which every pair of distinct vertices is connected by a unique edge.\\
+        \textbf{Euclidean Distance:} The Euclidean distance between two points $p = (p_1, p_2, \ldots, p_n)$ and $q = (q_1, q_2, \ldots, q_n)$ is given by $d(p, q) = \sqrt{(q_1 - p_1)^2 + (q_2 - p_2)^2 + \cdots + (q_n - p_n)^2}$.\\
+        \textbf{Minimum Spanning Tree:} A minimum spanning tree of a graph is a subset of the edges that connects all vertices with the minimum possible total edge weight.\\
+        \textbf{Maximum Edge Weight:} The maximum edge weight in a graph is the largest weight assigned to any edge, which can affect algorithms like Kruskal's or Prim's when constructing a spanning tree.\\
+        \textbf{Distance Graph:} A distance graph is a graph where edges represent the distance between vertices, often used in problems involving shortest paths or network design.\\
+    \end{minipage}
+};
+%------------ Distance Graph  Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Distance Graph};
+\end{tikzpicture}
+
+%------------ Graph Modification and Spanning Trees ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+    \textbf{Weighted Graphs and Edge Weights:} In a weighted graph, each edge $e$ has an associated weight $w(e)$, which can affect the shortest path calculations.\\
+        \textbf{Tree Modification and Spanning Trees:} A spanning tree of a graph is a subgraph that includes all vertices and is a single connected tree with no cycles.\\
+        \textbf{Shortest Path Tree:} A shortest path tree is a subgraph where the path from the root to any other vertex is the shortest path in the original graph.\\
+        \textbf{Impact of Constant Addition to Edge Weights:} Adding a constant $c$ to all edge weights in a graph does not change the structure of the shortest path tree.\\
+        \textbf{Graph Modification Techniques:} Graph modification involves altering edge weights or structure to achieve desired properties, such as optimizing paths or ensuring connectivity.\\
+    \end{minipage}
+};
+%------------ Graph Modification and Spanning Trees Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Graph Modification and Spanning Trees};
+\end{tikzpicture}
+
+%------------ Single Linkage Clustering ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+        \textbf{Kruskal's Algorithm in Clustering:} Kruskal's algorithm is used to find a minimum spanning tree for a connected weighted graph, which can be adapted for single linkage clustering by treating each edge as a potential connection between clusters.\\
+        \textbf{Disjoint Set Forest in Clustering:} A disjoint set forest is a data structure that keeps track of a partition of a set into disjoint subsets, which is crucial for efficiently managing clusters during the single linkage clustering process.\\
+        \textbf{Determining Number of Clusters:} The number of clusters in single linkage clustering can be determined by cutting the dendrogram at a desired distance threshold, which corresponds to the maximum allowable distance between merged clusters.\\
+        \textbf{Single Linkage Clustering:} Single linkage clustering, also known as nearest neighbor clustering, merges clusters based on the minimum distance between points in different clusters.\\
+        \textbf{Dendrogram in Clustering:} A dendrogram is a tree-like diagram that records the sequences of merges or splits in hierarchical clustering, providing a visual representation of the data's clustering structure.\\    \end{minipage}
+};
+%------------ Single Linkage Clustering Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Single Linkage Clustering};
+\end{tikzpicture}
+%------------ Data Separation and Classification ---------------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+    	\textbf{Real Numbers in Classification:} In classification, real numbers often represent features or decision boundaries, crucial for algorithms like SVMs.\\
+        \textbf{Color Assignment in Data Visualization:} Colors are assigned to different classes in a dataset to visually distinguish them, aiding in the interpretation of classification results.\\
+        \textbf{Optimal Separation Point:} The optimal separation point in a classification task is determined by minimizing the loss function, often using techniques like gradient descent.\\
+        \textbf{Time Complexity in Classification Algorithms:} The time complexity of a classification algorithm affects its scalability and efficiency, with SVMs typically having a complexity of $O(n^2)$ to $O(n^3)$.\\
+        \textbf{Loss Function in Machine Learning:} The loss function quantifies the difference between predicted and actual outcomes, guiding the optimization of classification models.\\
+    \end{minipage}
+};
+%------------ Data Separation and Classification Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Data Separation and Classification};
+\end{tikzpicture}
+
+%------------ Shortest Path Algorithms ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}  
+   \textbf{Dijkstra's Algorithm:} Dijkstra's algorithm finds the shortest path from a single source node to all other nodes in a weighted graph with non-negative weights.\\
+        \textbf{Bellman-Ford Algorithm:} The Bellman-Ford algorithm computes shortest paths from a single source vertex to all other vertices in a graph, handling graphs with negative weight edges.\\
+        \textbf{Graph Traversal Techniques:} Graph traversal techniques like BFS and DFS are foundational for exploring nodes and edges in a graph, crucial for pathfinding and connectivity analysis.\\
+        \textbf{Pathfinding in Graphs:} Pathfinding involves algorithms that determine the optimal path between nodes in a graph, considering factors like edge weights and graph structure.\\
+        \textbf{Comparison of Shortest Path Algorithms:} Dijkstra's is efficient for non-negative weights, while Bellman-Ford handles negative weights but with higher computational complexity.\\
+    \end{minipage}
+};
+%------------ Shortest Path Algorithms Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Shortest Path Algorithms};
+\end{tikzpicture}
+
+%------------ Graph Theory Basics ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+    \textbf{Vertices and Edges:} In a graph $G = (V, E)$, $V$ represents the set of vertices and $E$ represents the set of edges connecting pairs of vertices.\\
+        \textbf{Adjacency Matrix:} The adjacency matrix $A$ of a graph with $n$ vertices is an $n \times n$ matrix where $A_{ij} = 1$ if there is an edge between vertex $i$ and vertex $j$, and $0$ otherwise.\\
+        \textbf{Degree of a Vertex:} The degree of a vertex $v$, denoted $\deg(v)$, is the number of edges incident to $v$; for directed graphs, it includes both in-degree and out-degree.\\
+        \textbf{Graph Isomorphism:} Two graphs $G_1$ and $G_2$ are isomorphic if there exists a bijection $f: V(G_1) \to V(G_2)$ such that $(u, v) \in E(G_1)$ if and only if $(f(u), f(v)) \in E(G_2)$.\\
+        \textbf{Connected Components:} A connected component of a graph is a maximal subgraph in which any two vertices are connected to each other by paths, and which is connected to no additional vertices in the supergraph.\\
+    \end{minipage}
+};
+%------------ Graph Theory Basics Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Graph Theory Basics};
+\end{tikzpicture}
+
+
+%------------ Network Flow ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+\textbf{Max Flow Problem:} The maximum flow problem seeks to find the greatest possible flow from a source node to a sink node in a flow network, subject to capacity constraints on the edges.\\
+        \textbf{Min Cut Theorem:} The max-flow min-cut theorem states that the maximum value of flow in a network is equal to the capacity of the smallest (minimum) cut that separates the source and sink.\\
+        \textbf{Ford-Fulkerson Method:} The Ford-Fulkerson method is an algorithm that computes the maximum flow in a flow network by iteratively finding augmenting paths and increasing the flow along these paths.\\
+        \textbf{Capacity Constraints:} In a flow network, each edge has a capacity that limits the maximum flow that can pass through it, and the flow must satisfy these capacity constraints at all times.\\
+        \textbf{Residual Graph:} The residual graph represents the remaining capacity for additional flow in the network, and is used to find augmenting paths in algorithms like Ford-Fulkerson.\\
+    \end{minipage}
+};
+%------------ Network Flow Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Network Flow};
+\end{tikzpicture}
+\
+%------------ Graph Coloring ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+        \textbf{Chromatic Number:} The chromatic number $\chi(G)$ of a graph $G$ is the smallest number of colors needed to color the vertices of $G$ so that no two adjacent vertices share the same color.\\
+        \textbf{Coloring Algorithms:} Common graph coloring algorithms include Greedy Coloring, Backtracking, and DSATUR, each with varying time complexities and applications.\\
+        \textbf{Planar Graphs:} According to the Four Color Theorem, any planar graph can be colored with no more than four colors such that no two adjacent vertices share the same color.\\
+        \textbf{Coloring Constraints:} Graph coloring must satisfy constraints such as ensuring adjacent vertices have different colors, often modeled as a constraint satisfaction problem (CSP).\\
+        \textbf{Applications of Graph Coloring:} Graph coloring is used in scheduling problems, register allocation in compilers, and frequency assignment in wireless networks.\\
+    \end{minipage}
+};
+%------------ Graph Coloring Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Graph Coloring};
+\end{tikzpicture}
+%------------ Tree Data Structures---------------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+	    \textbf{Binary Trees:} A binary tree is a hierarchical data structure in which each node has at most two children, referred to as the left child and the right child.\\
+        \textbf{AVL Trees:} An AVL tree is a self-balancing binary search tree where the difference between heights of left and right subtrees cannot be more than one for all nodes.\\
+        \textbf{Tree Traversal:} Tree traversal refers to the process of visiting each node in a tree data structure, exactly once, in a systematic way, such as in-order, pre-order, or post-order.\\
+        \textbf{Balanced Trees:} A balanced tree is a tree structure where the height of the left and right subtrees of any node differ by no more than a specified amount, ensuring operations like insertion, deletion, and lookup are efficient.\\
+        \textbf{Tree Height and Depth:} The height of a tree is the length of the longest path from the root to a leaf, while the depth of a node is the number of edges from the root to the node.\\
+	\end{minipage}
+};
+%------------ Tree Data Structures Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Tree Data Structures};
+\end{tikzpicture}
+
+%------------ Dynamic Programming on Graphs ---------------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+        \textbf{Memoization in Dynamic Programming:} Memoization involves storing the results of expensive function calls and reusing them when the same inputs occur again, reducing the time complexity of algorithms on graphs.\\
+        \textbf{State Transition in Graphs:} State transition refers to the process of moving from one state to another in a graph, often represented by a recursive relation in dynamic programming.\\
+        \textbf{Optimal Substructure Property:} A problem exhibits optimal substructure if an optimal solution can be constructed efficiently from optimal solutions of its subproblems, crucial for dynamic programming on graphs.\\
+        \textbf{Overlapping Subproblems:} Overlapping subproblems occur when a recursive algorithm revisits the same problem multiple times, which can be optimized using dynamic programming techniques.\\
+        \textbf{Applications of Dynamic Programming on Graphs:} Dynamic programming is used in graph algorithms such as shortest path, network flow, and spanning tree problems to optimize performance and resource usage.\\
+	\end{minipage}
+};
+%------------ Dynamic Programming on Graphs Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Dynamic Programming on Graphs};
+\end{tikzpicture}
+
+%------------ Graph Isomorphism ---------------
+\begin{tikzpicture}
+\node [mybox] (box){%
+    \begin{minipage}{0.3\textwidth}
+        \textbf{Isomorphic Graphs:} Two graphs $G_1$ and $G_2$ are isomorphic if there exists a bijection $f: V(G_1) \to V(G_2)$ such that any two vertices $u$ and $v$ are adjacent in $G_1$ if and only if $f(u)$ and $f(v)$ are adjacent in $G_2$.\\
+        \textbf{Graph Matching:} Graph matching involves finding a correspondence between the vertices of two graphs that preserves the structure of the graphs, often used in pattern recognition and computer vision.\\
+        \textbf{Automorphism:} An automorphism of a graph $G$ is an isomorphism from $G$ to itself, which forms a group under the operation of composition.\\
+        \textbf{Graph Invariants:} Graph invariants are properties that remain unchanged under graph isomorphisms, such as the number of vertices, number of edges, and degree sequence.\\
+        \textbf{Graph Isomorphism Problem:} The graph isomorphism problem asks whether two finite graphs are isomorphic, and it is a computational problem whose complexity is not yet fully classified.\\
+    \end{minipage}
+};
+%------------ Graph Isomorphism Header ---------------------
+\node[fancytitle, right=10pt] at (box.north west) {Graph Isomorphism};
+\end{tikzpicture}
+\end{multicols*}
+\end{document}
+

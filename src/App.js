@@ -12,6 +12,7 @@ function App() {
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +119,21 @@ function App() {
     }
   };
 
+  const handleCreateCheatSheet = async () => {
+    try {
+      setIsAnalyzing(true);
+      const response = await axios.post(`${API_URL}/create-cheatsheet`);
+      if (response.status === 200) {
+        alert('Cheat sheet created successfully!');
+      }
+    } catch (err) {
+      console.error('Error creating cheat sheet:', err);
+      setError('Error creating cheat sheet');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <div className="App">
       <h1>PDF File Upload to S3</h1>
@@ -154,13 +170,23 @@ function App() {
         <div className="uploaded-files-header">
           <h2>Uploaded Files</h2>
           {!isLoading && uploadedFiles.length > 0 && (
-            <button 
-              onClick={handleDeleteAll}
-              className="delete-all-button"
-              disabled={isUploading}
-            >
-              Delete All
-            </button>
+            <div>
+              <button 
+                onClick={handleCreateCheatSheet}
+                className="analyze-button"
+                disabled={isAnalyzing}
+                style={{ marginRight: '10px' }}
+              >
+                {isAnalyzing ? 'Creating...' : 'Create Cheat Sheet'}
+              </button>
+              <button 
+                onClick={handleDeleteAll}
+                className="delete-all-button"
+                disabled={isUploading || isAnalyzing}
+              >
+                Delete All
+              </button>
+            </div>
           )}
         </div>
         {isLoading ? (

@@ -5,6 +5,7 @@ const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
 const { uploadToS3, deleteFromS3, listFilesFromS3, deleteUserFolder } = require('./utils/s3Service');
 require('dotenv').config();
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -129,6 +130,26 @@ app.delete('/files', async (req, res) => {
             error: error.message
         });
     }
+});
+
+app.post('/create-cheatsheet', async (req, res) => {
+  try {
+    const pythonProcess = spawn('python', ['gpt.py']);
+    
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`Python Error: ${data}`);
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        return res.status(500).json({ message: 'Error creating cheat sheet' });
+      }
+      res.status(200).json({ message: 'Cheat sheet created successfully' });
+    });
+  } catch (error) {
+    console.error('Error creating cheat sheet:', error);
+    res.status(500).json({ message: 'Error creating cheat sheet' });
+  }
 });
 
 app.listen(PORT, () => {
