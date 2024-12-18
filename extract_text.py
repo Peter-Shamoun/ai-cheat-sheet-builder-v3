@@ -4,23 +4,9 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-import requests
-import json
+load_dotenv()
 
-# Get the user ID from the API
-def get_user_id():
-    try:
-        response = requests.get('http://localhost:5000/current-user')
-        if response.status_code == 200:
-            data = response.json()
-            return data['userId']
-        else:
-            raise Exception(f"Failed to get user ID. Status code: {response.status_code}")
-    except Exception as e:
-        print(f"Error getting user ID: {e}")
-        return None
-
-user_id = get_user_id()
+user_id = os.getenv('CURRENT_USER_ID')
 print(f"Current user ID: {user_id}")
 
 # The URL for your API endpoint
