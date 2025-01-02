@@ -64,9 +64,9 @@ def main():
         # Process PDFs for the given user_id
         text_lst = process_user_pdfs(user_id)
         
-        # Continue with the rest of your processing
+
         all_topics = []
-        
+
         for text in text_lst:
             class Topic_Scope(BaseModel):
                 topic: str
@@ -74,7 +74,7 @@ def main():
 
             class Topic_Output(BaseModel):
                 topics: list[Topic_Scope]
-            
+                
             completion = client.beta.chat.completions.parse(
                 model="gpt-4o-2024-08-06",
                 messages=[
@@ -113,11 +113,33 @@ def main():
 
             event = completion.choices[0].message.parsed
             all_topics.append(event)
+        def output_to_input(output):
+            json_dict = []
+
+            for i in range(len(output)):
+                document_topic_output = output[i]
+
+                document_topic_output_dict = {'topics': []}
+
+
+                for topic in document_topic_output.topics:
+                    temp_dict = {}
+                    temp_dict['topic'] = topic.topic
+                    temp_dict['scope'] = topic.scope
+                    document_topic_output_dict['topics'].append(temp_dict)
+
+
+                json_dict.append(document_topic_output_dict)
+            
+            return json_dict
+
+
 
         t_list = output_to_input(all_topics)
 
-
         text = str(t_list)
+
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
         class Topic_Scope(BaseModel):
             topic: str
@@ -174,7 +196,9 @@ def main():
             scope  = event.topics[i].scope
             topic_dict[topic] = scope
             topic_lst.append(topic_dict)
-        # Return the final result as JSON
+
+
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
         ex_1 = r""" 
         heading: Scatter Plot
@@ -209,14 +233,13 @@ def main():
                 segments of LaTeX text based on the most critical topics from the provided text.
 
                 Requirements:
-                DO NOT USER ANY UNDERSCORES
+                
                 YOU MUST GO BEYOND MEER DEFINITIONS AND PROVIDE INFO THAT WILL HELP ANSWER QUESTIONS ON AN EXAM
 
                 Headings: Identify the five most essential topics in the provided material. Each heading should concisely reflect its subject matter.
                 LaTeX Content: For each heading, include one line of LaTeX text that summarizes or conveys key information about the topic.
                 Formatting:
                 Do not include begin document or end document tags.
-                DO NOT USER ANY UNDERSCORES
                 Close all LaTeX environments properly (e.g., for equations or itemized lists).
                 Example Output Format:
                 {ex_1},{ex_2},{ex_3}
@@ -226,7 +249,6 @@ def main():
                 Expectations:
                 FIVE (5) HEADINGS
                 Follow the format and ensure outputs are consistent.
-                DO NOT USER ANY UNDERSCORES
                 Use proper LaTeX syntax and close environments properly.
                 Ensure headings and LaTeX content provide meaningful information for readers preparing for the exam.
                 """},
@@ -517,34 +539,12 @@ def main():
         for key, value in page_dict.items():
             template = template.replace(key, value)
                 # Continue with the rest of your processing
-
-        print(json.dumps({"success": True, "result": template}))
-        
+                
+            
+        return template
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
-        sys.exit(1)
-
-def output_to_input(output):
-    json_dict = []
-
-    for i in range(len(output)):
-        document_topic_output = output[i]
-
-        document_topic_output_dict = {'topics': []}
-
-
-        for topic in document_topic_output.topics:
-            temp_dict = {}
-            temp_dict['topic'] = topic.topic
-            temp_dict['scope'] = topic.scope
-            document_topic_output_dict['topics'].append(temp_dict)
-
-
-        json_dict.append(document_topic_output_dict)
-    
-    return json_dict
-
-
+        print(f"Error generating template: {str(e)}")
+        return None
 
 if __name__ == "__main__":
     main()

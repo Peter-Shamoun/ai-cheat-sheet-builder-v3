@@ -184,3 +184,54 @@ body {
   color: #666;
   font-style: italic;
 } 
+.extract-button {
+  background: linear-gradient(145deg, #4CAF50, #45a049);
+  margin-right: 1rem;
+}
+
+.extract-button:hover {
+  background: linear-gradient(145deg, #45a049, #3d8b40);
+}
+
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.extraction-results {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.extracted-text {
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  font-size: 0.9rem;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+}
+
+.overleaf-link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.overleaf-link a {
+  color: #4CAF50;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.overleaf-link a:hover {
+  color: #45a049;
+  text-decoration: underline;
+}

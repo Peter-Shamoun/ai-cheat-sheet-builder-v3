@@ -5,6 +5,7 @@ const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
 const { uploadToS3, deleteFromS3, listFilesFromS3, deleteUserFolder } = require('./utils/s3Service');
 require('dotenv').config();
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -126,6 +127,50 @@ app.delete('/files', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             message: 'Error deleting all files',
+            error: error.message
+        });
+    }
+});
+
+// Add new endpoint for text extraction
+app.post('/extract-text', async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        
+        // Spawn Python process with userId as argument
+        const pythonProcess = spawn('python', ['extract_text.py', userId]);
+        
+        let result = '';
+        let error = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+            result += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            error += data.toString();
+        });
+
+        pythonProcess.on('close', (code) => {
+            if (code !== 0) {
+                return res.status(500).json({ 
+                    error: 'Error processing PDFs',
+                    details: error 
+                });
+            }
+            try {
+                const parsedResult = JSON.parse(result);
+                res.status(200).json(parsedResult);
+            } catch (e) {
+                res.status(500).json({ 
+                    error: 'Error parsing Python output',
+                    details: result 
+                });
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error extracting text',
             error: error.message
         });
     }

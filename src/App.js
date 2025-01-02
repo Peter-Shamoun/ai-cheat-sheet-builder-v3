@@ -4,7 +4,7 @@ import './App.css';
 
 axios.defaults.withCredentials = true;
 
-const API_URL = 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -12,6 +12,8 @@ function App() {
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedText, setExtractedText] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +120,32 @@ function App() {
     }
   };
 
+  const handleExtractText = async () => {
+    try {
+      setIsExtracting(true);
+      setError('');
+      
+      const response = await axios.post(`${API_URL}/extract-text`, {}, {
+        timeout: 3000000
+      });
+      
+      if (response.data.error) {
+        setError(response.data.error);
+      } else {
+        // Store the extracted text in state
+        setExtractedText(response.data.result);
+        
+        // Optionally scroll to the results
+        document.getElementById('extraction-results')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (err) {
+      console.error('Extraction error:', err);
+      setError(err.response?.data?.message || 'Error extracting text from PDFs');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   return (
     <div className="App">
       <h1>PDF File Upload to S3</h1>
@@ -153,15 +181,26 @@ function App() {
       <div className="uploaded-files">
         <div className="uploaded-files-header">
           <h2>Uploaded Files</h2>
-          {!isLoading && uploadedFiles.length > 0 && (
-            <button 
-              onClick={handleDeleteAll}
-              className="delete-all-button"
-              disabled={isUploading}
-            >
-              Delete All
-            </button>
-          )}
+          <div className="header-buttons">
+            {!isLoading && uploadedFiles.length > 0 && (
+              <>
+                <button 
+                  onClick={handleExtractText}
+                  className="extract-button"
+                  disabled={isExtracting || isUploading}
+                >
+                  {isExtracting ? 'Generating...' : 'Generate Cheat Sheet'}
+                </button>
+                <button 
+                  onClick={handleDeleteAll}
+                  className="delete-all-button"
+                  disabled={isUploading || isExtracting}
+                >
+                  Delete All
+                </button>
+              </>
+            )}
+          </div>
         </div>
         {isLoading ? (
           <div className="loading-message">Loading files...</div>
@@ -181,6 +220,22 @@ function App() {
           </ul>
         )}
       </div>
+
+      {extractedText && (
+        <div id="extraction-results" className="extraction-results">
+          <h2>Generated Cheat Sheet</h2>
+          <pre className="extracted-text">{extractedText}</pre>
+          <div className="overleaf-link">
+            <a 
+              href="https://www.overleaf.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              Click here to paste this LaTeX code into Overleaf and get your PDF
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
