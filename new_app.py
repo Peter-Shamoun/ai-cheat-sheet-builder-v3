@@ -6,36 +6,81 @@ import base64
 import os
 import subprocess
 import tempfile
+import PyPDF2
+from io import BytesIO
+import ast
+
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/pdf", methods=["POST"])
-def pdf():
+@app.route('/pdf/extract', methods=['POST'])
+def extract_text():
     try:
-        request_data = request.get_json()
-        if not request_data or "text_lst" not in request_data:
-            return make_response(jsonify({"error": "Missing 'text_lst' field in JSON"}), 400)
+        if 'file' not in request.files:
+            return 'No file provided', 400
 
-        text_lst = request_data["text_lst"]
+        file = request.files['file']
+        
+        # Check if a file was actually selected
+        if file.filename == '':
+            return 'No file selected', 400
 
-        # Process the text_lst here if needed
-        client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
+        # Check if it's a PDF
+        if not file.filename.lower().endswith('.pdf'):
+            return 'File must be a PDF', 400
+
+        # Read the PDF file
+        pdf_bytes = file.read()
+        pdf_reader = PyPDF2.PdfReader(BytesIO(pdf_bytes))
+        
+        # Extract text from all pages
+        text = ''
+        for page in pdf_reader.pages:
+            text += page.extract_text() or ''
+
+        return text, 200
+
+    except Exception as e:
+        print(f"Error processing PDF: {str(e)}")
+        return f'Error processing PDF: {str(e)}', 500
+
+@app.route('/topics', methods=['POST'])
+def process_topics():
+    try:
+        data = request.get_json()
+        if not data or 'text_list' not in data:
+            return 'No text_list provided in request body', 400
+
+        # Get the text_list from the request
+        text_list = data['text_list']
+        
+        # If it's not already a list, try to convert it
+        if not isinstance(text_list, list):
+            try:
+                text_list = list(text_list)
+            except:
+                return 'Could not convert text_list to list', 400
+
+        # Return the count of entries as a string
+        text_list = text_list
 
         all_topics = []
-
-        for text in text_lst:
+        
+        for text in text_list:
             class Topic_Scope(BaseModel):
                 topic: str
                 scope: list[str]
 
             class Topic_Output(BaseModel):
                 topics: list[Topic_Scope]
-
+            
             completion = client.beta.chat.completions.parse(
                 model="gpt-4o-2024-08-06",
                 messages=[
                     {"role": "system", "content": """
-
+                    
                     You are an expert assistant creating study materials for students.
 
                     Task: Analyze the provided text and extract key topics likely to appear on exams.
@@ -87,14 +132,29 @@ def pdf():
 
 
                 json_dict.append(document_topic_output_dict)
-
+            
             return json_dict
-
-
         t_list = output_to_input(all_topics)
+
 
         text = str(t_list)
 
+        return text, 200
+
+    except Exception as e:
+        print(f"Error processing text list: {str(e)}")
+        return f'Error processing text list: {str(e)}', 500
+
+@app.route('/topics/summarize', methods=['POST'])
+def summarize_topics():
+    try:
+        data = request.get_json()
+        if not data or 'topic_list' not in data:
+            return 'No topic_list provided in request body', 400
+
+        # Get the topic_list string from the request and return it
+        topic_list = data['topic_list']
+        text = topic_list
 
         class Topic_Scope(BaseModel):
             topic: str
@@ -106,12 +166,12 @@ def pdf():
         model="gpt-4o-2024-08-06",
         messages=[
             {"role": "system", "content": """
-
-            You are an expert in designing study materials for exams.
+            
+            You are an expert in designing study materials for exams. 
             There will be an exam given on the topics from the proivded text.
             Your task is to analyze the provided text and identify the twelve (12)
-            THERE MUST BE TWELVE TOPICS
-            most fundamental concepts that are likely to appear on an exam,
+            THERE MUST BE TWELVE TOPICS  
+            most fundamental concepts that are likely to appear on an exam, 
             considering the curriculum topics and their scope.
 
             Evaluation Criteria for Concepts:
@@ -124,7 +184,7 @@ def pdf():
 
             List exactly 12 concepts based on their exam prevelance importance. THERE MUST BE TWELVE TOPICS
 
-
+            
             Example Format:
 
             topic: Thermodynamics scope: ["keyword1", "keyword2", "keyword3", "keyword4" ...]
@@ -152,23 +212,50 @@ def pdf():
             topic_dict[topic] = scope
             topic_lst.append(topic_dict)
 
+        return str(topic_lst), 200
 
-        ex_1 = r"""
+    except Exception as e:
+        print(f"Error processing topic list: {str(e)}")
+        return f'Error processing topic list: {str(e)}', 500
+
+@app.route('/latex', methods=['POST'])
+def generate_latex():
+    try:
+        data = request.get_json()
+        if not data or 'topic_twelve' not in data:
+            print("Missing topic_twelve in request data")
+            return 'No topic_twelve provided in request body', 400
+
+        # Get the topic_twelve string
+        topic_twelve_str = data['topic_twelve']
+        print("Received topic_twelve:", topic_twelve_str)  # Debug print
+        
+        try:
+            # Try to convert string to list
+            topic_list = ast.literal_eval(topic_twelve_str)
+            print("Converted to list:", topic_list)  # Debug print
+        except Exception as e:
+            print(f"Conversion error: {str(e)}")
+            # If conversion fails, just use the string as is
+            topic_list = topic_twelve_str
+
+        # Example LaTeX content - using the actual topics if possible
+        ex_1 = r""" 
         heading: Scatter Plot
         latex_code: Relationship between two variables
         """
-        ex_2 = r"""
+        ex_2 = r""" 
         heading: $\mathbb{E}(X)$
         latex_code: $\sum_{x \in \text{supp}(X)} x \times p_X(x)$\\
         """
-        ex_3 = r"""
+        ex_3 = r""" 
         heading: quartile
         latex_code: For $0 \leq \alpha \leq 1$, the $\alpha$-quantile of $x_1, x_2, \ldots, x_n$ is the value for which at least an $\alpha$ fraction of the points have a value less than or equal to it.
         """
 
         latex_lst = []
 
-        for i in topic_lst:
+        for i in topic_list:
 
             class Heading(BaseModel):
                 heading: str
@@ -180,19 +267,20 @@ def pdf():
             model="gpt-4o-2024-08-06",
             messages=[
                 {"role": "system", "content": f"""
-
-                You are an expert in designing effective study materials for exams.
-                Your task is to create exactly FIVE (5) key headings and their corresponding
+                
+                You are an expert in designing effective study materials for exams. 
+                Your task is to create exactly FIVE (5) key headings and their corresponding 
                 segments of LaTeX text based on the most critical topics from the provided text.
 
                 Requirements:
-
+                DO NOT USER ANY UNDERSCORES
                 YOU MUST GO BEYOND MEER DEFINITIONS AND PROVIDE INFO THAT WILL HELP ANSWER QUESTIONS ON AN EXAM
 
                 Headings: Identify the five most essential topics in the provided material. Each heading should concisely reflect its subject matter.
                 LaTeX Content: For each heading, include one line of LaTeX text that summarizes or conveys key information about the topic.
                 Formatting:
                 Do not include begin document or end document tags.
+                DO NOT USER ANY UNDERSCORES
                 Close all LaTeX environments properly (e.g., for equations or itemized lists).
                 Example Output Format:
                 {ex_1},{ex_2},{ex_3}
@@ -202,6 +290,7 @@ def pdf():
                 Expectations:
                 FIVE (5) HEADINGS
                 Follow the format and ensure outputs are consistent.
+                DO NOT USER ANY UNDERSCORES
                 Use proper LaTeX syntax and close environments properly.
                 Ensure headings and LaTeX content provide meaningful information for readers preparing for the exam.
                 """},
@@ -216,8 +305,6 @@ def pdf():
 
             event = completion.choices[0].message.parsed
             latex_lst.append(event)
-
-
 
         heading_mapping_dict = {
             '@@box1blank1title@@': None, '@@box1blank2title@@': None, '@@box1blank3title@@': None, '@@box1blank4title@@': None, '@@box1blank5title@@': None,
@@ -249,12 +336,11 @@ def pdf():
                     fill_mapping_dict[key] = latex_lst[i].headings[j].latex_content
 
 
-        for i in range(len(topic_lst)):
+        for i in range(len(topic_list)):
             key = f"@@page{i+1}@@"
-            page_dict[key] = list(topic_lst[i].keys())[0]
+            page_dict[key] = list(topic_list[i].keys())[0] 
 
-
-        template = r"""
+        template = r""" 
         \documentclass{article}
         \usepackage[landscape]{geometry}
         \usepackage{url}
@@ -304,13 +390,13 @@ def pdf():
         \begin{tikzpicture}
         \node [mybox] (box){%
             \begin{minipage}{0.3\textwidth}
-
+        
                 \textbf{@@box1blank1title@@:} @@box1blank1fill@@\\
                 \textbf{@@box1blank2title@@:} @@box1blank2fill@@\\
                 \textbf{@@box1blank3title@@:} @@box1blank3fill@@\\
                 \textbf{@@box1blank4title@@:} @@box1blank4fill@@\\
                 \textbf{@@box1blank5title@@:} @@box1blank5fill@@\\
-
+                    
         \end{minipage}
         };
         %------------ @@page1@@  Header ---------------------
@@ -378,7 +464,7 @@ def pdf():
         %------------ @@page6@@ ---------------
         \begin{tikzpicture}
         \node [mybox] (box){%
-            \begin{minipage}{0.3\textwidth}
+            \begin{minipage}{0.3\textwidth}  
         \textbf{@@box6blank1title@@:} @@box6blank1fill@@\\
                 \textbf{@@box6blank2title@@:} @@box6blank2fill@@\\
                 \textbf{@@box6blank3title@@:} @@box6blank3fill@@\\
@@ -494,22 +580,31 @@ def pdf():
 
         for key, value in page_dict.items():
             template = template.replace(key, value)
+        
+        return template, 200
 
+    except Exception as e:
+        print(f"Error in /latex endpoint: {str(e)}")
+        return f'Error generating LaTeX: {str(e)}', 500
 
+@app.route('/pdf', methods=['POST'])
+def generate_pdf():
+    try:
+        data = request.get_json()
+        if not data or 'template' not in data:
+            return 'No template provided in request body', 400
 
+        template = data['template']
 
-        # 2. Create a temporary directory for compilation
         with tempfile.TemporaryDirectory() as tmpdir:
             tex_path = os.path.join(tmpdir, "document.tex")
             pdf_path = os.path.join(tmpdir, "document.pdf")
 
-            # 3. Write out the .tex file
-            with open(tex_path, "w") as f:
+            # Write the LaTeX file
+            with open(tex_path, "w", encoding='utf-8') as f:
                 f.write(template)
 
-            # 4. Run pdflatex to generate document.pdf
-            # You can also try "pdftex" if you really need that.
-            # pdflatex is more common for LaTeX workflows.
+            # Run pdflatex to generate PDF
             cmd = [
                 "pdflatex",
                 "-interaction=nonstopmode",
@@ -521,37 +616,26 @@ def pdf():
                 cwd=tmpdir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=10
+                timeout=60
             )
 
             if result.returncode != 0:
-                # Compilation failed; log the stderr and return a message.
                 print("LaTeX compilation error:", result.stderr.decode("utf-8"))
-                return make_response("Error compiling LaTeX.", 400)
+                return 'Error compiling LaTeX', 400
 
-            # 5. Read the PDF back as bytes
+            # Read the generated PDF
             with open(pdf_path, "rb") as pdf_file:
                 pdf_data = pdf_file.read()
 
-            # 6. Encode PDF in base64
-            encoded_pdf = base64.b64encode(pdf_data).decode("utf-8")
-
-            # 7. Return JSON response with the base64 PDF
-
-
-
-
-
-        return jsonify({
-            "success": True,
-            "template": template,
-            "message": f"Processed {len(text_lst)} text entries",
-            "encoded": encoded_pdf
-        })
+            # Create response with PDF file
+            response = make_response(pdf_data)
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = 'inline; filename=cheatsheet.pdf'
+            return response
 
     except Exception as e:
-        print(f"Error processing text list: {str(e)}")
-        return make_response(jsonify({"error": f"Error processing text list: {str(e)}"}), 500)
+        print(f"Error generating PDF: {str(e)}")
+        return f'Error generating PDF: {str(e)}', 500
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)

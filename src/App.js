@@ -1,56 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import './App.css';
-
-axios.defaults.withCredentials = true;
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [extractedText, setExtractedText] = useState('');
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  const fetchFiles = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(`${API_URL}/files`);
-      if (response.status === 200) {
-        setUploadedFiles(response.data);
-        setError('');
-      } else {
-        setError('Unexpected response from server');
-      }
-    } catch (err) {
-      console.error('Fetch error:', err);
-      if (err.response) {
-        // Server responded with a status other than 2xx
-        setError(err.response.data.message || 'Error fetching files');
-      } else if (err.request) {
-        // Request was made but no response received
-        setError('No response from server. Please check your network connection.');
-      } else {
-        // Something else happened
-        setError('An unexpected error occurred. Please try again later.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [progress, setProgress] = useState(0);
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files);
     if (files.length > 10) {
       setError('You can only upload up to 10 files at once');
+      return;
+    }
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      setError(`The following files exceed the 10MB limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
       return;
     }
 
@@ -64,7 +34,7 @@ function App() {
     setError('');
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (selectedFiles.length === 0) {
       setError('Please select files to upload');
       return;
@@ -72,83 +42,151 @@ function App() {
 
     setIsUploading(true);
     setError('');
-    const formData = new FormData();
-    selectedFiles.forEach(file => {
-      formData.append('pdfs', file);
-    });
 
     try {
-      const response = await axios.post(`${API_URL}/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Add files to uploadedFiles state
+      setUploadedFiles(prevFiles => [...prevFiles, ...selectedFiles]);
       
-      if (response.data && response.data.files) {
-        setSelectedFiles([]);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        await fetchFiles();  // Refresh the file list
+      // Clear selection
+      setSelectedFiles([]);
+      // Clear file input
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.value = '';
       }
     } catch (err) {
+      setError('Error uploading files');
       console.error('Upload error:', err);
-      setError(err.response?.data?.message || 'Error uploading files');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDelete = async (filename) => {
-    try {
-      await axios.delete(`${API_URL}/files/${encodeURIComponent(filename)}`);
-      fetchFiles();
-    } catch (err) {
-      setError('Error deleting file');
-      console.error('Delete error:', err);
-    }
+  const handleDelete = (filename) => {
+    setUploadedFiles(prevFiles => 
+      prevFiles.filter(file => file.name !== filename)
+    );
   };
 
-  const handleDeleteAll = async () => {
-    try {
-      await axios.delete(`${API_URL}/files`);
-      setUploadedFiles([]);
-      setError('');
-    } catch (err) {
-      setError('Error deleting all files');
-      console.error('Delete all error:', err);
-    }
+  const handleDeleteAll = () => {
+    setUploadedFiles([]);
+    setExtractedText('');
   };
 
   const handleExtractText = async () => {
     try {
-      setIsExtracting(true);
+      setIsGenerating(true);
+      setProgress(0);
+      const text_list = [];
       setError('');
       
-      const response = await axios.post(`${API_URL}/extract-text`, {}, {
-        timeout: 3000000
-      });
-      
-      if (response.data.error) {
-        setError(response.data.error);
-      } else {
-        // Store the extracted text in state
-        setExtractedText(response.data.result);
-        
-        // Optionally scroll to the results
-        document.getElementById('extraction-results')?.scrollIntoView({ behavior: 'smooth' });
+      // First API call: Process each file sequentially to extract text
+      for (const file of uploadedFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://159.54.182.115:5000/pdf/extract', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error processing ${file.name}: ${response.statusText}`);
+        }
+
+        const text = await response.text();
+        text_list.push(text);
       }
+      setProgress(20); // 1/5 complete
+
+      // Second API call: Send the collected texts to get topics
+      const topicsResponse = await fetch('http://159.54.182.115:5000/topics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text_list })
+      });
+
+      if (!topicsResponse.ok) {
+        throw new Error(`Error getting topics: ${topicsResponse.statusText}`);
+      }
+
+      const topic_list = await topicsResponse.text();
+      setProgress(40); // 2/5 complete
+
+      // Third API call: Summarize the topics
+      const summarizeResponse = await fetch('http://159.54.182.115:5000/topics/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          topic_list: topic_list
+        })
+      });
+
+      if (!summarizeResponse.ok) {
+        throw new Error(`Error summarizing topics: ${summarizeResponse.statusText}`);
+      }
+
+      const summaryText = await summarizeResponse.text();
+      setProgress(60); // 3/5 complete
+      
+      // Fourth API call: Get LaTeX file
+      const latexResponse = await fetch('http://159.54.182.115:5000/latex', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          topic_twelve: summaryText
+        })
+      });
+
+      if (!latexResponse.ok) {
+        throw new Error(`Error generating LaTeX: ${latexResponse.statusText}`);
+      }
+
+      const latexText = await latexResponse.text();
+      setExtractedText(latexText);
+      setProgress(80); // 4/5 complete
+
+      // Fifth API call: Generate PDF from LaTeX
+      const pdfResponse = await fetch('http://159.54.182.115:5000/pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          template: latexText
+        })
+      });
+
+      if (!pdfResponse.ok) {
+        throw new Error(`Error generating PDF: ${pdfResponse.statusText}`);
+      }
+
+      // Handle PDF blob and open in new window
+      const blob = await pdfResponse.blob();
+      const file = window.URL.createObjectURL(blob);
+      window.location.assign(file);
+      setProgress(100); // 5/5 complete
+      
+      // Scroll to results
+      document.getElementById('extraction-results')?.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
-      console.error('Extraction error:', err);
-      setError(err.response?.data?.message || 'Error extracting text from PDFs');
+      setError(`Error processing: ${err.message}`);
+      console.error('Processing error:', err);
     } finally {
-      setIsExtracting(false);
+      setIsGenerating(false);
+      setTimeout(() => setProgress(0), 1000); // Reset progress after 1 second
     }
   };
 
   return (
     <div className="App">
-      <h1>PDF File Upload to S3</h1>
+      <h1>AI Cheat Sheet Generator</h1>
       
       <div className="upload-section">
         <input
@@ -156,7 +194,6 @@ function App() {
           multiple
           accept=".pdf"
           onChange={handleFileSelect}
-          ref={fileInputRef}
           disabled={isUploading}
         />
         <button 
@@ -182,19 +219,19 @@ function App() {
         <div className="uploaded-files-header">
           <h2>Uploaded Files</h2>
           <div className="header-buttons">
-            {!isLoading && uploadedFiles.length > 0 && (
+            {uploadedFiles.length > 0 && (
               <>
                 <button 
                   onClick={handleExtractText}
                   className="extract-button"
-                  disabled={isExtracting || isUploading}
+                  disabled={isUploading || isGenerating}
                 >
-                  {isExtracting ? 'Generating...' : 'Generate Cheat Sheet'}
+                  {isGenerating ? 'Generating...' : 'Generate Cheat Sheet'}
                 </button>
                 <button 
                   onClick={handleDeleteAll}
                   className="delete-all-button"
-                  disabled={isUploading || isExtracting}
+                  disabled={isUploading || isGenerating}
                 >
                   Delete All
                 </button>
@@ -202,23 +239,19 @@ function App() {
             )}
           </div>
         </div>
-        {isLoading ? (
-          <div className="loading-message">Loading files...</div>
-        ) : (
-          <ul>
-            {uploadedFiles.map((file) => (
-              <li key={file._id}>
-                {file.filename}
-                <button 
-                  onClick={() => handleDelete(file._id)}
-                  disabled={isUploading}
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul>
+          {uploadedFiles.map((file, index) => (
+            <li key={index}>
+              {file.name}
+              <button 
+                onClick={() => handleDelete(file.name)}
+                disabled={isUploading || isGenerating}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {extractedText && (
@@ -233,6 +266,24 @@ function App() {
             >
               Click here to paste this LaTeX code into Overleaf and get your PDF
             </a>
+          </div>
+        </div>
+      )}
+
+      {isGenerating && (
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div 
+              className="progress-fill"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <div className="progress-text">
+            {progress === 20 && "Extracting text from PDFs..."}
+            {progress === 40 && "Analyzing topics..."}
+            {progress === 60 && "Summarizing content..."}
+            {progress === 80 && "Generating LaTeX..."}
+            {progress === 100 && "Creating PDF..."}
           </div>
         </div>
       )}
