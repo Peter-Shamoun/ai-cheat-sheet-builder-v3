@@ -85,7 +85,7 @@ function App() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('http://159.54.182.115:5000/pdf/extract', {
+        const response = await fetch('https://159.54.182.115:5000/pdf/extract', {
           method: 'POST',
           body: formData
         });
@@ -100,7 +100,7 @@ function App() {
       setProgress(20); // 1/5 complete
 
       // Second API call: Send the collected texts to get topics
-      const topicsResponse = await fetch('http://159.54.182.115:5000/topics', {
+      const topicsResponse = await fetch('https://159.54.182.115:5000/topics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -116,7 +116,7 @@ function App() {
       setProgress(40); // 2/5 complete
 
       // Third API call: Summarize the topics
-      const summarizeResponse = await fetch('http://159.54.182.115:5000/topics/summarize', {
+      const summarizeResponse = await fetch('https://159.54.182.115:5000/topics/summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -134,7 +134,7 @@ function App() {
       setProgress(60); // 3/5 complete
       
       // Fourth API call: Get LaTeX file
-      const latexResponse = await fetch('http://159.54.182.115:5000/latex', {
+      const latexResponse = await fetch('https://159.54.182.115:5000/latex', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ function App() {
       setProgress(80); // 4/5 complete
 
       // Fifth API call: Generate PDF from LaTeX
-      const pdfResponse = await fetch('http://159.54.182.115:5000/pdf', {
+      const pdfResponse = await fetch('https://159.54.182.115:5000/pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
